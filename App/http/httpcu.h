@@ -27,10 +27,12 @@ typedef struct {
     //Semaphore
     osSemaphoreId http_complate_semaphore;
     HTTPC_T http_g;
+    uint32_t last_tick;
 }HTTPCU_T;
 
 
 #define MAX_HTTP_HANDLE   (4)
+#define MAX_HTTP_TIMEOUT  (8000)
 
 #define container_of(ptr, type, member) ((void *)((char *)(ptr) - offsetof(type, member)))
 

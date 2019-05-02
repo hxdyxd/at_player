@@ -33,6 +33,7 @@ void httpc_get_callback(void *httpc, void *buf, int len)
             httpcu->httpcu_data_callback(httpcu, buf, len);
         }
         httpcu->pbuf_recv_len += len;
+        httpcu->last_tick = TIME_COUNT();
         //PRINTF("%.*s", len, (char *)buf);
     }
 }
@@ -93,6 +94,7 @@ int httpcu_get(HTTPCU_T *httpcu, void *pbuf, int mlen)
     }
     
     g_httpc_handle_list[httpcu->socket_fd] = &httpcu->http_g;
+    httpcu->last_tick = 0;
     
     slen = snprintf( (char *)pbuf, mlen, "GET %s HTTP/1.1\r\n", httpcu->uri);
     if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
@@ -111,7 +113,12 @@ int httpcu_get(HTTPCU_T *httpcu, void *pbuf, int mlen)
     
     osSemaphoreWait( httpcu->http_complate_semaphore, TIME_WAITING_FOR_INPUT);
     
-    while (osSemaphoreWait( httpcu->http_complate_semaphore, TIME_WAITING_FOR_INPUT) != osOK) {}
+    while (osSemaphoreWait( httpcu->http_complate_semaphore, MAX_HTTP_TIMEOUT) != osOK) {
+        if(TIME_COUNT() - httpcu->last_tick > MAX_HTTP_TIMEOUT) {
+            APP_WARN("http get timeout\r\n");
+            break;
+        }
+    }
     APP_DEBUG("http get ok: %d\r\n", httpcu->pbuf_recv_len);
     
 exit2:

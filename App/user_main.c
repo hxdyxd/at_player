@@ -22,8 +22,31 @@ osThreadId main_task_proc_handle;
 
 
 
-uint8_t sendbuf[2048];
+uint8_t sendbuf[2048*3];
+char lrcbuf[256];
 HTTPCU_T httpcu_test;
+
+
+char *getline(char *buf, int count, int *olen)
+{
+    char *last = buf;
+    char *next = last;
+    while(count--) {
+        next = strstr(last, "\n");
+        if(next == NULL) {
+            return NULL;
+        }
+        last = next + 1;
+    }
+    next = strstr(last, "\n");
+    if(next == NULL) {
+        return NULL;
+    }
+    *olen = next - last;
+    return last;
+}
+
+
 
 void main_task_proc(void const *p)
 {
@@ -73,7 +96,55 @@ void main_task_proc(void const *p)
                 PRINTF(GREEN_FONT, "----------------Audio Player Message----------------");
                 PRINTF("\r\n");
                 
-                mad_netword_player_start(ocJson_host->valuestring, 80, ocJson_path->valuestring);
+                MP3_DECODER_T mp3_conf;
+                mp3_conf.host = ocJson_host->valuestring;
+                mp3_conf.port = 80;
+                mp3_conf.uri = ocJson_path->valuestring;
+                
+                if(mad_netword_player_start_async(&mp3_conf) < 0) {
+                    continue;
+                }
+                
+                char loadlrc = 0;
+                if(ocJson_lrchost && ocJson_lrcpath) {
+                    httpcu_init(&httpcu_test, 0, ocJson_lrchost->valuestring, 80, ocJson_lrcpath->valuestring);
+                    int jlen = httpcu_get(&httpcu_test, sendbuf, sizeof(sendbuf));
+                    if(jlen > 0 && jlen != sizeof(sendbuf)) {
+                        sendbuf[jlen] = '\0';
+                        PRINTF("%s", sendbuf);
+                        loadlrc = 1;
+                    }
+                }
+                
+                APP_DEBUG("wait play ...\r\n");
+                int k = 0;
+                int rlen = 0;
+                while( mad_network_player_status() ) {
+                    osDelay(300);
+                    if(loadlrc) {
+                        char *line = getline( (char *)sendbuf, k++, &rlen);
+                        if(line == NULL || rlen >= sizeof(lrcbuf) - 1) {
+                            continue;
+                        }
+                        int min, sec, msec = 0;
+                        
+                        memcpy(lrcbuf, line, rlen);
+                        lrcbuf[rlen] = '\0';
+                        int cnt = sscanf(lrcbuf, "[%02d:%02d.%02d]", &min, &sec, &msec);
+                        
+                        if(cnt == 3) {
+                            char *lrcstr = lrcbuf + 10;
+                            msec = (min*60 + sec)*1000 + msec*10;
+                            
+                            if(mad_netword_player_get_play_time() >= msec) {
+                                PRINTF("%d %s\r\n", msec, lrcstr);
+                            } else {
+                                --k;
+                            }
+                        }
+                    }
+                }
+                
             }
             
             cJSON_Delete(ocJson);

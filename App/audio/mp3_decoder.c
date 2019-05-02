@@ -16,8 +16,9 @@
 
 int use_pwm = 1;
 
-volatile uint8_t player_mad_task_run_sflag = 0;
-volatile uint8_t player_mad_task_stop_sflag = 1;
+static volatile uint8_t player_mad_task_run_sflag = 0;
+static volatile uint8_t player_mad_task_stop_sflag = 1;
+static volatile uint8_t player_mad_async_stop_sflag = 1;
 static char gs_http_mp3_run = 0;
 
 #define READBUFSZ (2106)
@@ -29,6 +30,7 @@ static HTTPCU_T http_mp3;
 /* Semaphore to signal incoming packets */
 static osSemaphoreId smp3_semaphore = NULL;
 static osThreadId player_mad_task_handle = NULL;
+static uint32_t play_start_time = 0;
 
 
 //Called by the NXP modifications of libmad. Sets the needed output sample rate.
@@ -38,6 +40,7 @@ void set_dac_sample_rate(int rate, int chls)
     if (rate == oldRate) return;
     oldRate = rate;
     APP_DEBUG("MAD: Rate %d, channels %d \r\n", rate, chls);
+    play_start_time = TIME_COUNT();
 //    if(use_i2s)
 //        i2s_device_set_rate(rate, chls);
     if(use_pwm) 
@@ -303,7 +306,7 @@ void httpcu_data_callback(void *httpc, void *buf, int len)
 }
 
 
-int mad_netword_player_start(char *host, uint16_t port, char *uri)
+void mad_netword_player_start(const void *config)
 {
     unsigned char *httpcu_pbuf = NULL;
     int ret = -1;
@@ -328,7 +331,8 @@ int mad_netword_player_start(char *host, uint16_t port, char *uri)
         goto exit;
     }
     
-    httpcu_init(&http_mp3, 1, host, port, uri);
+    MP3_DECODER_T *conf = (MP3_DECODER_T *)config;
+    httpcu_init(&http_mp3, 1, conf->host, conf->port, conf->uri);
     httpcu_set_callback(&http_mp3, httpcu_data_callback);
     httpcu_get(&http_mp3, httpcu_pbuf, HTTPCU_BUF_MAX_LEN);
     gs_http_mp3_run = 0;
@@ -341,8 +345,32 @@ int mad_netword_player_start(char *host, uint16_t port, char *uri)
     free(httpcu_pbuf);
 exit:
     APP_DEBUG("mp3 play end \r\n");
-    return ret;
+    //return ret;
+    player_mad_async_stop_sflag = 1;
+    vTaskDelete(NULL);
 }
+
+
+int mad_netword_player_start_async(MP3_DECODER_T *config)
+{
+    if(!config) {
+        return -1;
+    }
+    player_mad_async_stop_sflag = 0;
+    osThreadDef(player_mad_task, mad_netword_player_start, osPriorityAboveNormal, 0, 512);
+    osThreadId player_async_task_handle = osThreadCreate(osThread(player_mad_task), config);
+    if(player_mad_task_handle == NULL) {
+        APP_ERROR("task create failed \r\n");
+        return -1;
+    }
+    return 0;
+}
+
+unsigned int mad_network_player_status(void)
+{
+    return !player_mad_async_stop_sflag;
+}
+
 
 int mad_netword_player_pause(void)
 {
@@ -350,7 +378,10 @@ int mad_netword_player_pause(void)
     return 0;
 }
 
-
+uint32_t mad_netword_player_get_play_time(void)
+{
+    return (TIME_COUNT() - play_start_time);
+}
 
 
 /*****************************END OF FILE***************************/
