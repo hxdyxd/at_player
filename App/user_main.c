@@ -7,6 +7,7 @@
 #include <user_main.h>
 
 #include <cmsis_os.h>
+#include <os_malloc.h>
 
 #include <uart_receiver.h>
 #include <pwm_transfer.h>
@@ -17,6 +18,7 @@
 #include <httpcu.h>
 #include <mp3_decoder.h>
 
+#include <tim.h>
 
 osThreadId main_task_proc_handle;
 
@@ -46,6 +48,30 @@ char *getline(char *buf, int count, int *olen)
     return last;
 }
 
+
+void uart_cmd_callback(char ch)
+{
+    uint8_t *listbuf = NULL;
+    switch(ch) {
+    case 'l':
+    {
+        listbuf = os_malloc(512);
+        if(listbuf) {
+            osThreadList(listbuf);
+            PRINTF("-----------------------------\r\n");
+            PRINTF("%s", listbuf);
+            PRINTF("-----------------------------\r\n");
+            vTaskGetRunTimeStats((char *)listbuf);
+            PRINTF("%s\r\n", listbuf);
+            PRINTF("------------%08x-------------\r\n", __HAL_TIM_GET_COUNTER(&htim2) );
+            os_free(listbuf);
+        }
+        break;
+    }
+    default:
+        putchar(ch);
+    }
+}
 
 
 void main_task_proc(void const *p)
@@ -101,7 +127,7 @@ void main_task_proc(void const *p)
                 mp3_conf.port = 80;
                 mp3_conf.uri = ocJson_path->valuestring;
                 
-                if(mad_netword_player_start_async(&mp3_conf) < 0) {
+                if(mad_network_player_start_async(&mp3_conf) < 0) {
                     continue;
                 }
                 
@@ -116,27 +142,27 @@ void main_task_proc(void const *p)
                     }
                 }
                 
-                APP_DEBUG("wait play ...\r\n");
+                APP_DEBUG("playing ...\r\n");
                 int k = 0;
-                int rlen = 0;
                 while( mad_network_player_status() ) {
                     osDelay(300);
                     if(loadlrc) {
+                        int rlen = 0;
                         char *line = getline( (char *)sendbuf, k++, &rlen);
                         if(line == NULL || rlen >= sizeof(lrcbuf) - 1) {
                             continue;
                         }
-                        int min, sec, msec = 0;
-                        
                         memcpy(lrcbuf, line, rlen);
                         lrcbuf[rlen] = '\0';
+                        
+                        int min, sec, msec = 0;
                         int cnt = sscanf(lrcbuf, "[%02d:%02d.%02d]", &min, &sec, &msec);
                         
                         if(cnt == 3) {
                             char *lrcstr = lrcbuf + 10;
                             msec = (min*60 + sec)*1000 + msec*10;
                             
-                            if(mad_netword_player_get_play_time() >= msec) {
+                            if(mad_network_player_get_play_time() >= msec) {
                                 PRINTF("%d %s\r\n", msec, lrcstr);
                             } else {
                                 --k;
@@ -150,8 +176,6 @@ void main_task_proc(void const *p)
             cJSON_Delete(ocJson);
         }
                 
-//        osThreadList(sendbuf);
-//        printf("%s", sendbuf);
         APP_DEBUG("mp3 play end \r\n");
         printf("----------------------end----------------------\r\n");
     }
@@ -168,6 +192,9 @@ void user_os_setup(void)
     uart_receiver_init();
     pwm_transfer_init();
     
+    //__HAL_TIM_SET_COUNTER(&htim2, 0);
+    HAL_TIM_Base_Start(&htim2);
+    
     osThreadDef(main_task, main_task_proc, osPriorityNormal, 0, 512);
     main_task_proc_handle = osThreadCreate(osThread(main_task), NULL);
 }
@@ -179,6 +206,14 @@ void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
     while(1);
 }
 
+void configureTimerForRunTimeStats(void)
+{
+}
+
+unsigned long getRunTimeCounterValue(void)
+{
+    return __HAL_TIM_GET_COUNTER(&htim2);
+}
 
 
 /* nonos */

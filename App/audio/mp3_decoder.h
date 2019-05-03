@@ -13,10 +13,10 @@ typedef struct {
 
 #define HTTPCU_BUF_MAX_LEN  1024
 
-void mad_netword_player_start(const void *config);
-int mad_netword_player_start_async(MP3_DECODER_T *config);
-int mad_netword_player_pause(void);
-uint32_t mad_netword_player_get_play_time(void);
+void mad_network_player_start(const void *config);
+int mad_network_player_start_async(MP3_DECODER_T *config);
+int mad_network_player_pause(void);
+uint32_t mad_network_player_get_play_time(void);
 unsigned int mad_network_player_status(void);
 
 #endif

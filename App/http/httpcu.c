@@ -14,7 +14,9 @@ static HTTPC_T *g_httpc_handle_list[MAX_HTTP_HANDLE] = {
     NULL,
 };
 
-
+/**
+  *  @note: callback from uart_wifi_task
+  **/
 void httpc_get_callback(void *httpc, void *buf, int len)
 {
     HTTPCU_T * const httpcu =  container_of(httpc, HTTPCU_T, http_g);

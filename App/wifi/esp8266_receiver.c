@@ -10,6 +10,9 @@
 
 static char g_wifi_status = 0;
 
+/**
+  *  @note: callback from uart_wifi_task
+  **/
 void esp8266_user_data_callback(int id, uint8_t *buf, int len)
 {
     switch(id) {
@@ -31,7 +34,9 @@ void esp8266_user_data_callback(int id, uint8_t *buf, int len)
     LED_REV(LED_BASE);
 }
 
-
+/**
+  *  @note: callback from uart_wifi_task
+  **/
 void esp8266_urc_callback(void *buf, int len)
 {
     APP_DEBUG("(%d) %s \r\n", len, (char *)buf);

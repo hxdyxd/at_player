@@ -285,7 +285,9 @@ int mp3_fifo_in(void *buf, int len)
     return  __kfifo_in(&mp3_fifo, buf, len);
 }
 
-
+/**
+  *  @note: callback from uart_wifi_task
+  **/
 void httpcu_data_callback(void *httpc, void *buf, int len)
 {
     uint8_t *pbuf = buf;
@@ -306,8 +308,9 @@ void httpcu_data_callback(void *httpc, void *buf, int len)
 }
 
 
-void mad_netword_player_start(const void *config)
+void mad_network_player_start(const void *config)
 {
+    MP3_DECODER_T *conf = (MP3_DECODER_T *)config;
     unsigned char *httpcu_pbuf = NULL;
     int ret = -1;
     osSemaphoreDef(SEM2);
@@ -315,8 +318,8 @@ void mad_netword_player_start(const void *config)
     
     gs_http_mp3_run = 1;
     
-    osThreadDef(player_mad_task, player_mad_task_proc, osPriorityAboveNormal, 0, 2148);
-    player_mad_task_handle = osThreadCreate(osThread(player_mad_task), NULL);
+    osThreadDef(play_decoder, player_mad_task_proc, osPriorityAboveNormal, 0, 2304);
+    player_mad_task_handle = osThreadCreate(osThread(play_decoder), NULL);
     if(player_mad_task_handle == NULL) {
         APP_ERROR("task create failed \r\n");
         goto exit;
@@ -331,7 +334,6 @@ void mad_netword_player_start(const void *config)
         goto exit;
     }
     
-    MP3_DECODER_T *conf = (MP3_DECODER_T *)config;
     httpcu_init(&http_mp3, 1, conf->host, conf->port, conf->uri);
     httpcu_set_callback(&http_mp3, httpcu_data_callback);
     httpcu_get(&http_mp3, httpcu_pbuf, HTTPCU_BUF_MAX_LEN);
@@ -339,6 +341,7 @@ void mad_netword_player_start(const void *config)
     
     while(!player_mad_task_stop_sflag) {
         osDelay(500);
+        APP_DEBUG("wait decoder task exit ...\r\n");
     }
     
     ret = 0;
@@ -351,14 +354,14 @@ exit:
 }
 
 
-int mad_netword_player_start_async(MP3_DECODER_T *config)
+int mad_network_player_start_async(MP3_DECODER_T *config)
 {
     if(!config) {
         return -1;
     }
     player_mad_async_stop_sflag = 0;
-    osThreadDef(player_mad_task, mad_netword_player_start, osPriorityAboveNormal, 0, 512);
-    osThreadId player_async_task_handle = osThreadCreate(osThread(player_mad_task), config);
+    osThreadDef(play_network, mad_network_player_start, osPriorityAboveNormal, 0, 256);
+    osThreadId player_async_task_handle = osThreadCreate(osThread(play_network), config);
     if(player_mad_task_handle == NULL) {
         APP_ERROR("task create failed \r\n");
         return -1;
@@ -372,13 +375,13 @@ unsigned int mad_network_player_status(void)
 }
 
 
-int mad_netword_player_pause(void)
+int mad_network_player_pause(void)
 {
     gs_http_mp3_run = 0;
     return 0;
 }
 
-uint32_t mad_netword_player_get_play_time(void)
+uint32_t mad_network_player_get_play_time(void)
 {
     return (TIME_COUNT() - play_start_time);
 }

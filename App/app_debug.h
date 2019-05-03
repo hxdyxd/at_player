@@ -14,7 +14,7 @@
 #define WHITE_FONT "\033[40;37m%s\033[0m "
 
 
-#define TIME_COUNT()  (HAL_GetTick())
+#define TIME_COUNT()  (osKernelSysTick())
 
 extern osMutexId debug_mutex;
 

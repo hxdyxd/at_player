@@ -2,9 +2,9 @@
 # 介绍
 
 这个工程主要用于测试串口WIFI模块（ESP8266）在高波特率加硬件流控下的表现，MCU使用了STM32F411RE，100Mhz主频，
-运行FreeRTOS，工程使用STM32MXCube生成。
+运行FreeRTOS，工程使用STM32CubeMX生成。
 
-效果为，HTTP GET PCM音频文件并透过PWM调制，实时播放，输出信号经低通滤波后可送speaker播放。
+效果为，HTTP GET MP3音频文件并透过PWM调制，实时播放，输出信号经低通滤波后可送speaker播放。
 
 代码分为UART接收处理、ESP8266串口解析、PWM传输三部分，各部分间通过无锁fifo共享数据。
 

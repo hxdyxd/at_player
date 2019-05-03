@@ -6,7 +6,7 @@
 
 
 int uart_receiver_init(void);
-
+void uart_cmd_callback(char ch);
 
 #endif
 /*****************************END OF FILE***************************/

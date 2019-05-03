@@ -140,7 +140,7 @@ void uart_fifo_rx_handler(UART_HandleTypeDef *huart)
                 //printf("[IDLE] transfer_in : %d \r\n", transfer_in);
                 if(uart_fifo_size(i) >= FIFO_RX_SIZE>>1) {
                     //dma fifo数据已经过半，继续传输可能产生溢出，暂时禁止对端传输
-                    uart_fifo_rx_receive_RTS(1, 0);
+                    uart_fifo_rx_receive_RTS(i, 0);
                 }
                 uart_update_callback(i);
             }
@@ -177,7 +177,7 @@ void UART_DMAReceiveCplt_t(DMA_HandleTypeDef *hdma)
             //printf("[CB] transfer_in : %d \r\n", transfer_in);
             if(uart_fifo_size(i) >= FIFO_RX_SIZE>>1) {
                 //dma fifo数据已经过半，继续传输可能产生溢出，暂时禁止对端传输
-                uart_fifo_rx_receive_RTS(1, 0);
+                uart_fifo_rx_receive_RTS(i, 0);
             }
             uart_update_callback(i);
         }
@@ -230,7 +230,7 @@ int uart_fifo_out(int id, void *buf, int len)
     int out_len = __kfifo_out(&huartx[id].fifo, buf, len);
     //恢复传输
     if(uart_fifo_size(id) < FIFO_RX_SIZE>>1) {
-        uart_fifo_rx_receive_RTS(1, 1);
+        uart_fifo_rx_receive_RTS(id, 1);
     }
     return out_len;
 }
