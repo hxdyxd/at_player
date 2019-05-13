@@ -56,10 +56,31 @@ int httpcu_init(HTTPCU_T *httpcu, int socket_fd,  char *host, uint16_t port, cha
     httpcu->host = host;
     httpcu->port = port;
     httpcu->uri = uri;
+    httpcu->method = HTTP_METHOD_GET;
+    httpcu->req_header = NULL;
+    httpcu->httpcu_body_write_callback = NULL;
     httpcu->httpcu_data_callback = NULL;
     return 0;
 }
 
+
+void httpcu_set_method(HTTPCU_T *httpcu, char *method)
+{
+    httpcu->method = method;
+}
+
+void httpcu_set_header(HTTPCU_T *httpcu, char *req_header)
+{
+    httpcu->req_header = req_header;
+}
+
+
+//POST Only
+int httpcu_set_write_callback(HTTPCU_T *httpcu, HTTPCU_WRITE_CALLBACK_T fn)
+{
+    httpcu->httpcu_body_write_callback = fn;
+    return 0;
+}
 
 int httpcu_set_callback(HTTPCU_T *httpcu, HTTPCU_CALLBACK_T fn)
 {
@@ -98,26 +119,87 @@ int httpcu_get(HTTPCU_T *httpcu, void *pbuf, int mlen)
     g_httpc_handle_list[httpcu->socket_fd] = &httpcu->http_g;
     httpcu->last_tick = 0;
     
-    slen = snprintf( (char *)pbuf, mlen, "GET %s HTTP/1.1\r\n", httpcu->uri);
+    slen = snprintf( (char *)pbuf, mlen, "%s %s HTTP/1.1\r\n", httpcu->method, httpcu->uri);
     if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
         APP_WARN("tcp0 send failed \r\n");
         ret = -1;
         goto exit2;
     }
     
-    
-    slen = snprintf( (char *)pbuf, mlen, "Host: %s:%d\r\n\r\n", httpcu->host, httpcu->port);
+    slen = snprintf( (char *)pbuf, mlen, "Host: %s:%d\r\n", httpcu->host, httpcu->port);
     if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
         APP_WARN("tcp0 send failed \r\n");
         ret = -1;
         goto exit2;
     }
+    
+    if( strcmp(httpcu->method, HTTP_METHOD_POST) == 0) {
+        /* POST Only */
+        slen = snprintf( (char *)pbuf, mlen, "Transfer-Encoding: chunked\r\n");
+        if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
+            APP_WARN("tcp0 send failed \r\n");
+            ret = -1;
+            goto exit2;
+        }
+    }
+    
+    if(httpcu->req_header) {
+        if(esp8266_tcp_send(httpcu->socket_fd, httpcu->req_header, strlen(httpcu->req_header) ) < 0) {
+            APP_WARN("tcp0 send failed \r\n");
+            ret = -1;
+            goto exit2;
+        }
+    }
+    
+    slen = snprintf( (char *)pbuf, mlen, "User-Agent: %s\r\n\r\n", USER_AGENT);
+    if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
+        APP_WARN("tcp0 send failed \r\n");
+        ret = -1;
+        goto exit2;
+    }
+    
+    if( strcmp(httpcu->method, HTTP_METHOD_POST) == 0 && httpcu->httpcu_body_write_callback) {
+        /* POST Only */
+        char *wpbuf = NULL;
+        int wlen = 0;
+        while((wlen = httpcu->httpcu_body_write_callback(httpcu, (void **)&wpbuf)) > 0) {
+            slen = snprintf( (char *)pbuf, mlen, "%x\r\n", wlen);
+            if(esp8266_tcp_send(httpcu->socket_fd, pbuf, slen ) < 0) {
+                APP_WARN("tcp0 send failed \r\n");
+                ret = -1;
+                goto exit2;
+            }
+            PRINTF("%s", pbuf);
+            
+            if(esp8266_tcp_send(httpcu->socket_fd, wpbuf, wlen) < 0) {
+                APP_WARN("tcp0 send failed \r\n");
+                ret = -1;
+                goto exit2;
+            }
+            
+            if(esp8266_tcp_send(httpcu->socket_fd, "\r\n", 2 ) < 0) {
+                APP_WARN("tcp0 send failed \r\n");
+                ret = -1;
+                goto exit2;
+            }
+        }
+    }
+    if( strcmp(httpcu->method, HTTP_METHOD_POST) == 0) {
+        /* POST Only */
+        if(esp8266_tcp_send(httpcu->socket_fd, "0\r\n\r\n", 5 ) < 0) {
+            APP_WARN("tcp0 send failed \r\n");
+            ret = -1;
+            goto exit2;
+        }
+    }
+    
     
     osSemaphoreWait( httpcu->http_complate_semaphore, TIME_WAITING_FOR_INPUT);
     
     while (osSemaphoreWait( httpcu->http_complate_semaphore, MAX_HTTP_TIMEOUT) != osOK) {
         if(TIME_COUNT() - httpcu->last_tick > MAX_HTTP_TIMEOUT) {
             APP_WARN("http get timeout\r\n");
+            ret = -2;
             break;
         }
     }
@@ -125,6 +207,7 @@ int httpcu_get(HTTPCU_T *httpcu, void *pbuf, int mlen)
     
 exit2:
     g_httpc_handle_list[httpcu->socket_fd] = NULL;
+    httpcu->httpcu_body_write_callback = NULL;
     httpcu->httpcu_data_callback = NULL;
     httpcu->host = NULL;
     httpc_close(&httpcu->http_g);

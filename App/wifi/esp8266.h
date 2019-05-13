@@ -12,6 +12,8 @@
 #define WIFI_SSID       "101"
 #define WIFI_PASSWORD   "198612888"
 
+#define WIFI_SSID2       "111"
+
 
 #define  ESP8266_STATUS_GOTIP         2
 #define  ESP8266_STATUS_CON           3
@@ -33,6 +35,7 @@
 
 /* The time to block waiting for input. */
 #define TIME_WAITING_FOR_INPUT ( portMAX_DELAY )
+#define TIME_WAITING_FOR_RESET ( 3000 )
 
 
 #define min(a, b)  (((a)<(b))?(a):(b))

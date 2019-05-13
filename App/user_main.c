@@ -17,6 +17,7 @@
 #include <esp8266_receiver.h>
 #include <httpcu.h>
 #include <mp3_decoder.h>
+#include <bds_stt.h>
 
 #include <tim.h>
 
@@ -68,6 +69,17 @@ void uart_cmd_callback(char ch)
         }
         break;
     }
+    case 'm':
+    {
+        size_t sz = xPortGetMinimumEverFreeHeapSize();
+        PRINTF("MinimumEverFreeHeapSize = %d\r\n", sz);
+        break;
+    }
+    case 'b':
+    {
+        bds_stt_test();
+        break;
+    }
     default:
         putchar(ch);
     }
@@ -87,6 +99,7 @@ void main_task_proc(void const *p)
             APP_WARN("Waiting for connection establishment\r\n");
             continue;
         }
+        
         printf("---------------------start---------------------\r\n");
         esp8266_get_status();
         
@@ -137,7 +150,7 @@ void main_task_proc(void const *p)
                     int jlen = httpcu_get(&httpcu_test, sendbuf, sizeof(sendbuf));
                     if(jlen > 0 && jlen != sizeof(sendbuf)) {
                         sendbuf[jlen] = '\0';
-                        PRINTF("%s", sendbuf);
+                        //PRINTF("%s", sendbuf);
                         loadlrc = 1;
                     }
                 }
@@ -188,6 +201,8 @@ void user_os_setup(void)
 {
     debug_init();
     printf("\r\n\r\n[OS STM32F401CC] Build , %s %s \r\n", __DATE__, __TIME__);
+    
+    os_malloc_init();
     
     uart_receiver_init();
     pwm_transfer_init();

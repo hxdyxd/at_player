@@ -13,13 +13,13 @@
 #define ESP8266_DEBUG  APP_DEBUG
 #define ESP8266_WARN  APP_WARN
 #define ESP8266_ERROR  APP_ERROR
-
+#define ESP8266_UART   huart6
 
 #define esp8266_printf(...) do {\
     PRINTF("(w)#");\
     PRINTF(__VA_ARGS__);\
     int len = snprintf( (void *)at_buf, AT_BUFFER_SIZE, __VA_ARGS__);\
-    HAL_UART_Transmit(&huart6, (void *)at_buf, len, 2*len); }while(0)
+    HAL_UART_Transmit(&ESP8266_UART, (void *)at_buf, len, 2*len); }while(0)
 
 
 #define ENSEE  do{\
@@ -152,10 +152,10 @@ uint8_t at_buf[AT_BUFFER_SIZE];
 int at_failed = 0;
 osSemaphoreId sReady_xSemaphore = NULL;
 
-static void usart6_set_baudrate(int baudrate)
+static void usart_set_baudrate(int baudrate)
 {
-    huart6.Init.BaudRate = baudrate;
-    if (HAL_UART_Init(&huart6) != HAL_OK)
+    ESP8266_UART.Init.BaudRate = baudrate;
+    if (HAL_UART_Init(&ESP8266_UART) != HAL_OK)
     {
         Error_Handler();
     }
@@ -339,8 +339,11 @@ int esp8266_init_asnyc(void)
     osDelay(1000);
     
     LED_OFF(ESP8266_BASE);
-    osSemaphoreWait( sReady_xSemaphore, TIME_WAITING_FOR_INPUT);
-    osDelay(2000);
+    osDelay(200);
+    if(osSemaphoreWait( sReady_xSemaphore, TIME_WAITING_FOR_RESET) != osOK) {
+        return -1;
+    }
+    osDelay(200);
     
     at_failed = 0;
     APP_WARN("g_at_list_num = %d \r\n", g_at_list_num);
@@ -351,7 +354,7 @@ int esp8266_init_asnyc(void)
         APP_DEBUG("create mutex for esp8266 success\r\n");
     }
     
-    usart6_set_baudrate(115200);
+    usart_set_baudrate(115200);
     
     while(esp8266_try_async("AT\r\n", L("OK", "busy p..."), 3, 500) == 1) {
         APP_WARN("wait busy p \r\n");
@@ -363,7 +366,7 @@ int esp8266_init_asnyc(void)
     
     snprintf((char *)at_buf, AT_BUFFER_SIZE, "AT+UART_CUR=%d,%d,%d,%d,%d\r\n", BANDRATE_MAX, 8, 1 /* 3: 2bit stop bits*/, 0, 2); //CTS ENABLE
     esp8266_try_async( (char *)at_buf, L("OK"), 1, 500);
-    usart6_set_baudrate(BANDRATE_MAX);
+    usart_set_baudrate(BANDRATE_MAX);
     
     esp8266_try_async("AT\r\n", L("OK"), 3, 200);
     /* show module version */
@@ -381,7 +384,28 @@ int esp8266_init_asnyc(void)
     esp8266_try_async("AT+CWDHCP_CUR=1,1\r\n", L("OK"), 1, 1000);
     
     //connect to ap
-    esp8266_connect_ap(WIFI_SSID, WIFI_PASSWORD);
+    
+    while(1) {
+//        if(esp8266_connect_ap(WIFI_SSID2, WIFI_PASSWORD) >= 0) {
+//            break;
+//        }
+//        
+//        while(esp8266_try_async("AT\r\n", L("OK", "busy p..."), 3, 200) == 1) {
+//            APP_WARN("wait busy p \r\n");
+//            osDelay(500);
+//        }
+        
+        if(esp8266_connect_ap(WIFI_SSID, WIFI_PASSWORD) >= 0) {
+            break;
+        }
+        
+        while(esp8266_try_async("AT\r\n", L("OK", "busy p..."), 3, 200) == 1) {
+            APP_WARN("wait busy p \r\n");
+            osDelay(500);
+        }
+    }
+    
+    
     
     while(esp8266_try_async("AT\r\n", L("OK", "busy p..."), 3, 200) == 1) {
         APP_WARN("wait busy p \r\n");
@@ -631,7 +655,7 @@ int esp8266_tcp_send(int id, void *buf, int length)
     
     snprintf( (char *)at_buf, AT_BUFFER_SIZE, " AT+CIPSEND=%d,%d\r\n", id, length);
     if(esp8266_try_async( (char *)at_buf, L(">", "ERROR"), 1, 5000) == 0) {
-        HAL_UART_Transmit_DMA(&huart6, (void *)buf, length);
+        HAL_UART_Transmit_DMA(&ESP8266_UART, (void *)buf, length);
         if(esp8266_try_async(NULL, L("SEND OK", "SEND FAIL"), 1, 5000) == 0) {
             osMutexRelease(esp8266_mutex);
             return 0;

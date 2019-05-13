@@ -37,9 +37,6 @@ void uart_fifo_task_proc1(void const *p)
     s_xSemaphore1 = osSemaphoreCreate(osSemaphore(SEM) , 1 );
     
     
-    uart_fifo_rx_init();
-    APP_DEBUG("uart fifo rx init success \r\n");
-    
     while(1) {
         if (osSemaphoreWait( s_xSemaphore1, TIME_WAITING_FOR_INPUT) == osOK) {
             int ch;
@@ -59,9 +56,6 @@ void uart_fifo_task_proc2(void const *p)
     s_xSemaphore2 = osSemaphoreCreate(osSemaphore(SEM) , 1 );
     
     
-    uart_fifo_rx_init();
-    APP_DEBUG("uart fifo rx init success \r\n");
-    
     while(1) {
         if (osSemaphoreWait( s_xSemaphore2, TIME_WAITING_FOR_INPUT) == osOK) {
             while(esp8266_process() >= 0) 
@@ -77,9 +71,11 @@ osThreadId uart_fifo_task_proc_handle2;
 
 int uart_receiver_init(void)
 {
+    uart_fifo_rx_init();
+    APP_DEBUG("uart fifo rx init success \r\n");
     
     //UART receiving task
-    osThreadDef(uart_cmd_task, uart_fifo_task_proc1, osPriorityRealtime, 0, 256);
+    osThreadDef(uart_cmd_task, uart_fifo_task_proc1, osPriorityLow, 0, 256);
     uart_fifo_task_proc_handle1 = osThreadCreate(osThread(uart_cmd_task), NULL);
     
     //UART receiving task

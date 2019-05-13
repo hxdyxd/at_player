@@ -5,13 +5,15 @@
 
 #include <stdio.h>
 #include "FreeRTOS.h"
-#define malloc(s)   pvPortMalloc(s), printf("malloc size: %d %d\r\n", s, xPortGetFreeHeapSize())
-#define calloc(a,b)   pvPortMalloc(a*b), printf("calloc size: %d \r\n", a*b)
-#define free(p)     vPortFree(p), printf("free: %p \r\n", p);
+#define malloc(s)   os_malloc(s)
+#define calloc(a,b)   os_calloc(a,b)
+#define free(p)     os_free(p)
 
-#define os_malloc(s)   pvPortMalloc(s), printf("malloc size: %d %d\r\n", s, xPortGetFreeHeapSize())
-#define os_calloc(a,b)   pvPortMalloc(a*b), printf("calloc size: %d \r\n", a*b)
-#define os_free(p)     vPortFree(p), printf("free: %p \r\n", p);
 
+
+void os_malloc_init(void);
+void *os_malloc(size_t sz);
+void *os_calloc(size_t nmemb, size_t size);
+void os_free(void *ptr);
 
 #endif

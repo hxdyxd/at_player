@@ -266,7 +266,8 @@ exit0:
 //    }
     if(use_pwm) {
         while(pwm_fifo.in - pwm_fifo.out > 0) {
-            vTaskDelay(100);
+            vTaskDelay(500);
+            APP_DEBUG("wait pwm fifo empty ...\r\n");
         }
     }
     
@@ -338,6 +339,7 @@ void mad_network_player_start(const void *config)
     httpcu_set_callback(&http_mp3, httpcu_data_callback);
     httpcu_get(&http_mp3, httpcu_pbuf, HTTPCU_BUF_MAX_LEN);
     gs_http_mp3_run = 0;
+    player_mad_task_run_sflag = 0;
     
     while(!player_mad_task_stop_sflag) {
         osDelay(500);

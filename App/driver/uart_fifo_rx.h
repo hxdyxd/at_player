@@ -9,7 +9,7 @@
 //#define UART_FIFO_RX_DEBUG   APP_DEBUG
 #define UART_FIFO_RX_WARN    printf
 
-#define UART_FIFO_RX_HOLD_BUG    (1)
+#define UART_FIFO_RX_HOLD_BUG    (0)
 
 
 

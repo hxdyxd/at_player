@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F411xE,FPM_DEFAULT</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;             ../Drivers/STM32F4xx_HAL_Driver/Inc;             ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;             ../Middlewares/Third_Party/FreeRTOS/Source/include;             ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;             ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;             ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;             ../Drivers/CMSIS/Include;             ..\App;             ..\App\audio;             ..\App\driver;             ..\App\http;             ..\App\libmad-0.15.1b;             ..\App\utilities;             ..\App\wifi</IncludePath>
+              <IncludePath>../Inc;                 ../Drivers/STM32F4xx_HAL_Driver/Inc;                 ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;                 ../Middlewares/Third_Party/FreeRTOS/Source/include;                 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                 ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;                 ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;                 ../Drivers/CMSIS/Include;                 ..\App;                 ..\App\audio;                 ..\App\driver;                 ..\App\http;                 ..\App\libmad-0.15.1b;                 ..\App\utilities;                 ..\App\wifi</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -402,6 +402,16 @@
         <Group>
           <GroupName>Drivers/STM32F4xx_HAL_Driver</GroupName>
           <Files>
+            <File>
+              <FileName>stm32f4xx_hal_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hal_adc_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c</FilePath>
+            </File>
             <File>
               <FileName>stm32f4xx_hal_tim.c</FileName>
               <FileType>1</FileType>
@@ -543,6 +553,11 @@
               <FilePath>../Src/gpio.c</FilePath>
             </File>
             <File>
+              <FileName>adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Src/adc.c</FilePath>
+            </File>
+            <File>
               <FileName>dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/dma.c</FilePath>
@@ -642,6 +657,11 @@
               <FileType>1</FileType>
               <FilePath>..\App\audio\mp3_decoder.c</FilePath>
             </File>
+            <File>
+              <FileName>bds_stt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\audio\bds_stt.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -721,6 +741,11 @@
               <FileName>soft_timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\App\utilities\soft_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>os_malloc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\utilities\os_malloc.c</FilePath>
             </File>
           </Files>
         </Group>

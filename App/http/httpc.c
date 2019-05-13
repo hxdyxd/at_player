@@ -178,7 +178,7 @@ static void httpc_detect_header(HTTPC_T *http_h, const char ch)
                     http_h->httpc_sta = S_HTTP_CHUNKED_DETECT;
                 } else {
                     PRINTF("unsupport http header \r\n");
-                    while(1);
+                    //while(1);
                 }
                 return;
             }

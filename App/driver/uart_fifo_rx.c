@@ -13,6 +13,7 @@
 
 
 extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart6_rx;
 
 
@@ -219,7 +220,6 @@ int uart_fifo_rx_init(void)
             printf("uart receive dma start error \r\n");
             return -1;
         }
-        printf("uart_receive_dma_idle \r\n");
     }
     return 0;
 }

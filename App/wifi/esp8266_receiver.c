@@ -17,9 +17,8 @@ void esp8266_user_data_callback(int id, uint8_t *buf, int len)
 {
     switch(id) {
     case 0:
-        //httpc_process(&http_mp3, buf, len);
-        //break;
     case 1:
+    case 2:
     {
         HTTPC_T *httpc = http_get_handle(id);
         if(httpc) {
