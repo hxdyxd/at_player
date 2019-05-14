@@ -32,8 +32,8 @@ uart_fifo_rx_t huartx[UART_RX_NUM] = {
         .dma = &hdma_usart1_rx,
     },
     {
-        .uart = &huart6,
-        .dma = &hdma_usart6_rx,
+        .uart = &huart2,
+        .dma = &hdma_usart2_rx,
     },
 };
 

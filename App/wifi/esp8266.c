@@ -13,7 +13,7 @@
 #define ESP8266_DEBUG  APP_DEBUG
 #define ESP8266_WARN  APP_WARN
 #define ESP8266_ERROR  APP_ERROR
-#define ESP8266_UART   huart6
+#define ESP8266_UART   huart2
 
 #define esp8266_printf(...) do {\
     PRINTF("(w)#");\
@@ -364,7 +364,7 @@ int esp8266_init_asnyc(void)
         return -1;
     }
     
-    snprintf((char *)at_buf, AT_BUFFER_SIZE, "AT+UART_CUR=%d,%d,%d,%d,%d\r\n", BANDRATE_MAX, 8, 1 /* 3: 2bit stop bits*/, 0, 2); //CTS ENABLE
+    snprintf((char *)at_buf, AT_BUFFER_SIZE, "AT+UART_CUR=%d,%d,%d,%d,%d\r\n", BANDRATE_MAX, 8, 1 /* 3: 2bit stop bits*/, 0, 3); /*3: CTS&RTS ENABLE */
     esp8266_try_async( (char *)at_buf, L("OK"), 1, 500);
     usart_set_baudrate(BANDRATE_MAX);
     
